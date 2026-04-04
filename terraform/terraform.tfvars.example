@@ -1,0 +1,23 @@
+# cp terraform.tfvars.example terraform.tfvars  (não commitar tfvars)
+
+project_id   = "SEU_GCP_PROJECT_ID"
+region       = "southamerica-east1"
+service_name = "pagemanager-n8n"
+timezone     = "America/Sao_Paulo"
+
+n8n_encryption_key      = "openssl_rand_hex_32"
+n8n_basic_auth_user     = "admin"
+n8n_basic_auth_password = "SENHA_UI"
+
+neon_db_host     = "ep-xxx.region.aws.neon.tech"
+neon_db_name     = "neondb"
+neon_db_user     = "USER"
+neon_db_password = "PASSWORD"
+
+gemini_api_key = "AIza..."
+openai_api_key = "sk-..."
+
+linkedin_access_token = "AQX..."
+linkedin_member_urn   = "urn:li:person:ID"
+
+webhook_path = "pagemanager-post"

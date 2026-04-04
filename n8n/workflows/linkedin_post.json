@@ -1,0 +1,594 @@
+{
+  "name": "PageManager — LinkedIn Perfil com Imagem",
+  "meta": {
+    "instanceId": "pagemanager-linkedin",
+    "templateCredsSetupCompleted": false
+  },
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pagemanager-post",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "webhookId": "pagemanager-webhook"
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Preparar Lista de Feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return [\n  { json: { url: 'https://aws.amazon.com/blogs/architecture/feed/' } },\n  { json: { url: 'https://aws.amazon.com/blogs/devops/feed/' } },\n  { json: { url: 'https://aws.amazon.com/blogs/security/feed/' } },\n  { json: { url: 'https://cloud.google.com/blog/topics/devops-cicd/rss' } },\n  { json: { url: 'https://cloud.google.com/blog/topics/security/rss' } },\n  { json: { url: 'https://kubernetes.io/feed.xml' } },\n  { json: { url: 'https://www.cncf.io/feed/' } },\n  { json: { url: 'https://blog.cloudflare.com/rss/' } },\n  { json: { url: 'https://sre.google/feeds/posts/default' } },\n  { json: { url: 'https://grafana.com/blog/index.xml' } },\n  { json: { url: 'https://www.hashicorp.com/blog/feed.xml' } },\n  { json: { url: 'https://thenewstack.io/feed/' } },\n  { json: { url: 'https://devops.com/feed/' } },\n  { json: { url: 'https://www.docker.com/blog/feed/' } },\n];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "url": "={{ $json.url }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Filtrar e Selecionar Artigo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function sha256Utf8Hex(str) {\n  var bin = '';\n  var u8 = new TextEncoder().encode(String(str || ''));\n  for (var bi = 0; bi < u8.length; bi++) bin += String.fromCharCode(u8[bi]);\n  return sha256RawBytesString(bin);\n}\nfunction sha256RawBytesString(ascii) {\n  function rightRotate(value, amount) {\n    return (value >>> amount) | (value << (32 - amount));\n  }\n  var mathPow = Math.pow;\n  var maxWord = mathPow(2, 32);\n  var lengthProperty = 'length';\n  var i, j;\n  var result = '';\n  var words = [];\n  var asciiBitLength = ascii[lengthProperty] * 8;\n  var hash = [];\n  var k = [];\n  var primeCounter = 0;\n  var isComposite = {};\n  for (var candidate = 2; primeCounter < 64; candidate++) {\n    if (!isComposite[candidate]) {\n      for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;\n      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;\n      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;\n    }\n  }\n  ascii += '\\x80';\n  while (ascii[lengthProperty] % 64 - 56) ascii += '\\x00';\n  for (i = 0; i < ascii[lengthProperty]; i++) {\n    j = ascii.charCodeAt(i);\n    if (j >> 8) throw new Error('sha256: byte inválido');\n    words[i >> 2] |= j << ((3 - i) % 4) * 8;\n  }\n  words[words[lengthProperty]] = (asciiBitLength / maxWord) | 0;\n  words[words[lengthProperty]] = asciiBitLength;\n  for (j = 0; j < words[lengthProperty];) {\n    var w = words.slice(j, (j += 16));\n    var oldHash = hash;\n    hash = hash.slice(0, 8);\n    for (i = 0; i < 64; i++) {\n      var w15 = w[i - 15],\n        w2 = w[i - 2];\n      var a = hash[0],\n        e = hash[4];\n      var temp1 =\n        hash[7] +\n        (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +\n        ((e & hash[5]) ^ (~e & hash[6])) +\n        k[i] +\n        (w[i] =\n          i < 16\n            ? w[i]\n            : (w[i - 16] +\n                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +\n                w[i - 7] +\n                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |\n              0);\n      var temp2 =\n        (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +\n        ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));\n      hash = [(temp1 + temp2) | 0].concat(hash);\n      hash[4] = (hash[4] + temp1) | 0;\n    }\n    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;\n  }\n  for (i = 0; i < 8; i++) {\n    for (j = 3; j + 1; j--) {\n      var b = (hash[i] >> (j * 8)) & 255;\n      result += (b < 16 ? '0' : '') + b.toString(16);\n    }\n  }\n  return result;\n}\n\nfunction normalizeArticleUrl(raw) {\n  const s = String(raw || '').trim();\n  if (!s) return '';\n  try {\n    const x = new URL(s);\n    if (x.protocol === 'http:') x.protocol = 'https:';\n    x.hash = '';\n    let host = x.hostname.toLowerCase();\n    if (host.startsWith('www.')) host = host.slice(4);\n    x.hostname = host;\n    const dropParams = [\n      'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id',\n      'ref', 'fbclid', 'gclid', 'mc_cid', 'mc_eid', 'igshid', '_branch_match_id', 'trk', 'trkparam'\n    ];\n    for (const k of dropParams) x.searchParams.delete(k);\n    const qs = x.searchParams.toString();\n    x.search = qs ? `?${qs}` : '';\n    let p = x.pathname.replace(/\\/+$/, '');\n    x.pathname = p || '/';\n    return x.href;\n  } catch {\n    return s;\n  }\n}\n\nfunction pathFingerprint(normalizedHref) {\n  const h = String(normalizedHref || '').trim();\n  if (!h) return '';\n  try {\n    const x = new URL(h);\n    let host = x.hostname.toLowerCase();\n    if (host.startsWith('www.')) host = host.slice(4);\n    let path = x.pathname.replace(/\\/+$/, '') || '/';\n    return sha256Utf8Hex(`${x.protocol}//${host}${path}`);\n  } catch {\n    return '';\n  }\n}\n\nfunction normalizeForDedupeText(t) {\n  return String(t || '')\n    .toLowerCase()\n    .normalize('NFKD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction contentDedupeHash(title, snippet) {\n  const a = normalizeForDedupeText(title).slice(0, 220);\n  const b = normalizeForDedupeText(snippet).slice(0, 450);\n  return sha256Utf8Hex(`${a}||${b}`);\n}\n\nfunction hashItemId(url) {\n  return sha256Utf8Hex(url);\n}\n\nfunction wfGlobal() {\n  if (typeof $getWorkflowStaticData === 'function') return $getWorkflowStaticData('global');\n  if (typeof getWorkflowStaticData === 'function') return getWorkflowStaticData('global');\n  throw new Error('Static data indisponível: atualize o n8n ou use workflow ativo.');\n}\n\nconst allItems = $input.all();\nconst items = allItems.map(item => item.json);\n\nconst staticData = wfGlobal();\nstaticData.postedIds = staticData.postedIds || [];\nif (!staticData._legacyPostedUrlsMigrated && staticData.postedUrls && staticData.postedUrls.length) {\n  for (const u of staticData.postedUrls) {\n    const nid = hashItemId(normalizeArticleUrl(u));\n    if (!staticData.postedIds.includes(nid)) staticData.postedIds.unshift(nid);\n  }\n  staticData._legacyPostedUrlsMigrated = true;\n}\nconst postedIdSet = new Set(staticData.postedIds);\n\nstaticData.postedPathHashes = staticData.postedPathHashes || [];\nstaticData.postedContentHashes = staticData.postedContentHashes || [];\nconst postedPathSet = new Set(staticData.postedPathHashes);\nconst postedContentSet = new Set(staticData.postedContentHashes);\n\n// Pelo menos UMA âncora forte (Cloud / DevOps / SRE / infra / rede / ciber) — evita \"monitoring\" genérico em posts de IA\nconst primaryAnchors = [\n  'devops', 'sre', 'site reliability', 'platform engineering',\n  'kubernetes', 'k8s', 'terraform', 'ansible', 'helm', 'gitops',\n  'ci/cd', 'cicd', 'pipeline', 'jenkins', 'argocd', 'gitlab',\n  'container', 'docker', 'pod ', 'namespace', 'kubectl',\n  'serverless', 'lambda', 'fargate', 'cloudformation', 'aws cdk', 'cdk ',\n  'microservice', 'service mesh', 'istio', 'linkerd', 'envoy',\n  'vpc', 'subnet', 'load balancer', 'cloudfront', 'api gateway',\n  'eks', 'gke', ' aks', 'openshift',\n  'prometheus', 'grafana', 'opentelemetry', 'observability',\n  'infrastructure as code', 'iac',\n  'zero trust', 'iam', 'oauth', 'saml', 'cve', 'vulnerability',\n  'devsecops', 'sbom', 'supply chain',\n  'finops', 'cost optimization', 'reserved instance',\n  'disaster recovery', 'multi-region', 'high availability',\n  'postmortem', 'on-call', 'pagerduty',\n  'network policy', 'firewall', 'ddos', 'waf', 'intrusion',\n  'encryption', 'tls', 'mtls', 'rbac',\n  'hybrid cloud', 'multi-cloud',\n  'segurança da informação', 'security operations', 'soc ',\n  'routing protocol', 'bgp', 'sdn', 'network automation'\n];\n\nconst excludeKeywords = [\n  'artificial intelligence', 'machine learning', 'deep learning',\n  'large language model', 'llm', 'generative ai', 'gen ai',\n  'chatgpt', 'copilot', 'neural network', 'data science', 'nlp', 'gpt-',\n  'computer vision', 'foundation model', 'fine-tuning', 'fine tuning',\n  'prompt engineering', 'hallucination', 'sagemaker', 'sage maker',\n  'workplace safety', 'occupational safety', 'osha', 'industrial safety',\n  'computer vision', 'video analytics', 'object detection', 'yolo',\n  'vagas', 'emprego', 'promoção', 'marketing', 'webinar', 'survey',\n  'report 2025', 'report 2026'\n];\n\nconst scoreKeywords = [\n  'devops', 'sre', 'site reliability', 'platform engineering',\n  'ci/cd', 'cicd', 'pipeline', 'gitops', 'terraform', 'ansible',\n  'helm', 'observability', 'monitoring', 'alerting', 'incident',\n  'postmortem', 'on-call', 'resilience', 'reliability',\n  'cloud', 'kubernetes', 'k8s', 'container', 'serverless', 'microservice',\n  'service mesh', 'istio', 'multi-cloud', 'hybrid cloud',\n  'security', 'segurança', 'zero trust', 'iam', 'identity', 'vulnerability',\n  'cve', 'patch', 'compliance', 'devsecops', 'supply chain',\n  'rbac', 'encryption', 'architecture', 'best practice',\n  'design pattern', 'scalability', 'high availability',\n  'disaster recovery', 'cost optimization', 'finops'\n];\n\nconst scored = items\n  .filter(item => {\n    const text = ((item.title || '') + ' ' + (item.contentSnippet || item.summary || '')).toLowerCase();\n    if (excludeKeywords.some(kw => text.includes(kw))) return false;\n    if (!primaryAnchors.some(kw => text.includes(kw))) return false;\n    return true;\n  })\n  .map(item => {\n    const text = ((item.title || '') + ' ' + (item.contentSnippet || item.summary || '')).toLowerCase();\n    const score = scoreKeywords.filter(kw => text.includes(kw)).length;\n    const pubDate = new Date(item.pubDate || item.isoDate || 0);\n    const ageHours = (Date.now() - pubDate.getTime()) / 3600000;\n    const recencyBonus = ageHours < 24 ? 5 : ageHours < 48 ? 2 : 0;\n    return { ...item, _score: score + recencyBonus };\n  })\n  .sort((a, b) => b._score - a._score);\n\nif (scored.length === 0) {\n  return [];\n}\n\nconst fresh = [];\nfor (const item of scored) {\n  const raw = String(item.link || item.url || '').trim();\n  const uNorm = normalizeArticleUrl(raw);\n  if (!uNorm) continue;\n  const idRaw = hashItemId(raw);\n  const idNorm = hashItemId(uNorm);\n  const pk = pathFingerprint(uNorm);\n  const ch = contentDedupeHash(item.title || '', item.contentSnippet || item.summary || '');\n  if (postedIdSet.has(idRaw) || postedIdSet.has(idNorm)) continue;\n  if (pk && postedPathSet.has(pk)) continue;\n  if (ch && postedContentSet.has(ch)) continue;\n  fresh.push(item);\n}\n\nif (fresh.length === 0) {\n  return [];\n}\n\nfresh.sort((a, b) => {\n  const ta = new Date(a.pubDate || a.isoDate || 0).getTime();\n  const tb = new Date(b.pubDate || b.isoDate || 0).getTime();\n  if (tb !== ta) return tb - ta;\n  return (b._score || 0) - (a._score || 0);\n});\n\nconst seenPath = new Set();\nconst seenContent = new Set();\nconst freshUnique = [];\nfor (const item of fresh) {\n  const raw = String(item.link || item.url || '').trim();\n  const uNorm = normalizeArticleUrl(raw);\n  const pk = pathFingerprint(uNorm);\n  const ch = contentDedupeHash(item.title || '', item.contentSnippet || item.summary || '');\n  if ((pk && seenPath.has(pk)) || (ch && seenContent.has(ch))) continue;\n  if (pk) seenPath.add(pk);\n  if (ch) seenContent.add(ch);\n  freshUnique.push(item);\n}\n\nif (freshUnique.length === 0) {\n  return [];\n}\n\nconst top = freshUnique[0];\nconst rawUrl = String(top.link || top.url || '').trim();\nconst url = normalizeArticleUrl(rawUrl);\nconst itemId = hashItemId(rawUrl);\nconst itemIdNorm = hashItemId(url);\nconst pathDedupeKey = pathFingerprint(url);\nconst contentDedupeKey = contentDedupeHash(top.title || '', top.contentSnippet || top.summary || '');\nreturn [{\n  json: {\n    title: top.title || '',\n    url,\n    itemId,\n    itemIdNorm,\n    pathDedupeKey,\n    contentDedupeKey,\n    summary: (top.contentSnippet || top.summary || '').substring(0, 600),\n    pubDate: top.pubDate || top.isoDate || new Date().toISOString(),\n    score: top._score\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Tem Artigo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-url-not-empty",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Gemini — Gerar Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  contents: [{\n    parts: [{\n      text: 'Você edita posts de LinkedIn para uma audiência brasileira de tecnologia.\\n\\nIDIOMA (obrigatório):\\n- Escreva título e corpo inteiros em português do Brasil (pt-BR).\\n- Não deixe frases ou parágrafos em inglês. O título e o resumo abaixo podem estar em inglês: use-os só como fonte de ideias.\\n- Não copie nem cole trechos longos do resumo; não faça tradução palavra a palavra. Reescreva com outras palavras e ordem diferente.\\n- Termos técnicos consagrados em inglês (ex.: Kubernetes, pipeline, zero trust) podem aparecer quando forem nomes usuais no mercado.\\n\\nFORMATO DE SAÍDA (obrigatório, texto puro, sem markdown):\\n- Use exatamente estes rótulos e esta ordem:\\n  TÍTULO: <uma única linha, máximo 90 caracteres, headline chamativo e específico ao tema — não reproduza literalmente o título em inglês do artigo>\\n  (linha em branco)\\n  CORPO: <em uma ou mais linhas, o editorial>\\n- O CORPO deve ter entre 550 e 900 caracteres; feche o último período de forma completa.\\n- Não repita o rótulo TÍTULO ou CORPO no meio do texto.\\n\\nFORMATO EDITORIAL (obrigatório):\\n- O CORPO deve ser um comentário editorial curto sobre o artigo, não um resumo neutro nem uma descrição do RSS.\\n- Traga um ângulo: por que o tema importa, implicação prática para times de TI, trade-off ou ponto de atenção — sempre ancorado no título e no resumo, sem inventar dados, números ou citações.\\n- Tom profissional e acessível; pode usar fórmulas impessoais como \"vale destacar\", \"o material sugere\", \"para equipes de infraestrutura, o ponto central é…\".\\n\\nCONTEÚDO ESPECÍFICO:\\n- Extraia do título e do resumo pelo menos 2 a 4 termos, ferramentas, práticas ou números mencionados e use-os com sentido (sem lista numerada ou bullets).\\n- Não preencha com frases genéricas sobre DevOps, SRE ou nuvem se o foco do artigo for outro.\\n\\nVOZ:\\n- Evite primeira pessoa (\"eu\", \"nós\" no sentido pessoal, \"achei\", \"li que\"). Prefira impessoal ou terceira pessoa sobre o artigo e o tema.\\n\\nDiretrizes de forma (título + corpo):\\n- O TÍTULO é só a manchete; o CORPO traz a abertura ligada ao tema, desenvolvimento e pergunta ou reflexão final\\n- Linguagem direta; termos técnicos pertinentes ao assunto\\n- Máximo 2-3 emojis no CORPO\\n- Sem hashtags (serão adicionadas depois)\\n- NÃO inclua URL nem link no TÍTULO nem no CORPO\\n- Não mencione IA/ML; infra, segurança ou confiabilidade só se o resumo trouxer esse ângulo\\n- LinkedIn não usa markdown: só texto corrido; sem asteriscos para negrito, underscores longos nem cerquilha no meio das frases\\n\\nFonte (só referência interna; não reproduza literalmente):\\nTítulo: ' + String($json.title ?? '') + '\\nResumo: ' + String($json.summary ?? '')\n    }]\n  }],\n  generationConfig: {\n    temperature: 0.88,\n    maxOutputTokens: 8192,\n    topP: 0.95\n  }\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Extrair Texto do Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        160
+      ],
+      "parameters": {
+        "jsCode": "function stripMarkdownForLinkedIn(s) {\n  let t = String(s || '');\n  for (let i = 0; i < 4; i++) {\n    t = t.replace(/\\*\\*([\\s\\S]*?)\\*\\*/g, '$1');\n    t = t.replace(/__([\\s\\S]*?)__/g, '$1');\n  }\n  t = t.replace(/`([^`]+)`/g, '$1');\n  t = t.replace(/\\*\\*/g, '');\n  t = t.replace(/\\*([^*\\n]+)\\*/g, '$1');\n  t = t.replace(/_([^_\\n]+)_/g, '$1');\n  return t.replace(/\\n{3,}/g, '\\n\\n').trim();\n}\n\nconst geminiResponse = $input.first().json;\nconst articleData = $('Filtrar e Selecionar Artigo').first().json;\nconst candidate = geminiResponse?.candidates?.[0];\nconst parts = candidate?.content?.parts || [];\nconst visible = parts.filter((p) => p && p.thought !== true && typeof p.text === 'string');\nconst raw = stripMarkdownForLinkedIn(visible.map((p) => p.text).filter(Boolean).join(''));\n\nif (!raw) {\n  throw new Error('Gemini não retornou texto para o post.');\n}\n\nlet editorialTitle = '';\nlet postText = raw;\n\nconst tituloM = raw.match(/^T[IÍ]TULO:\\s*(.+)$/im) || raw.match(/^TITULO:\\s*(.+)$/im);\nconst corpoM = raw.match(/\\bCORPO:\\s*([\\s\\S]+)/is);\n\nif (tituloM && corpoM) {\n  editorialTitle = tituloM[1].replace(/\\s+/g, ' ').trim();\n  postText = corpoM[1].trim();\n} else {\n  const lines = raw.split(/\\r?\\n/).map((l) => l.trim()).filter(Boolean);\n  if (lines.length >= 2) {\n    let first = lines[0].replace(/^(T[IÍ]TULO|TITULO):\\s*/i, '').trim();\n    editorialTitle = first;\n    postText = lines.slice(1).join('\\n\\n').replace(/^CORPO:\\s*/i, '').trim();\n  }\n}\n\nif (!postText) {\n  throw new Error('Não foi possível extrair o CORPO do post.');\n}\n\nif (editorialTitle.length > 120) {\n  editorialTitle = editorialTitle.slice(0, 117).trim() + '…';\n}\n\nreturn [{\n  json: {\n    editorialTitle,\n    postText,\n    articleTitle: articleData.title,\n    articleUrl: articleData.url,\n    articleSummary: articleData.summary\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Gemini — Gerar Hashtags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  contents: [{\n    parts: [{\n      text: 'Gere exatamente 5 hashtags para o LinkedIn sobre o post abaixo (título editorial + corpo).\\nCada hashtag: no máximo 20 caracteres após o # (evite palavras muito longas).\\nPriorize o tema específico; evite só #DevOps #Cloud genéricos.\\nMisture português e inglês.\\nSaída: UMA linha, só hashtags separadas por espaço, todas começando com #. Sem texto antes ou depois.\\n\\nTítulo:\\n' + String($json.editorialTitle ?? '') + '\\n\\nCorpo:\\n' + String($json.postText ?? '')\n    }]\n  }],\n  generationConfig: {\n    temperature: 0.3,\n    maxOutputTokens: 512\n  }\n}) }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "Consolidar Post e Hashtags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        160
+      ],
+      "parameters": {
+        "jsCode": "const postData = $('Extrair Texto do Post').first().json;\nconst geminiHashtagsResp = $input.first().json;\nconst tagCand = geminiHashtagsResp?.candidates?.[0];\nconst tagParts = tagCand?.content?.parts || [];\nlet hashtags = tagParts.map((p) => p.text).filter(Boolean).join('').replace(/\\s+/g, ' ').trim();\nif (!hashtags || tagCand?.finishReason === 'MAX_TOKENS') {\n  hashtags = '#Cloud #DevOps #SRE #Infraestrutura #Tech';\n}\n\nconst url = String(postData.articleUrl || '').trim();\nconst sep = '\\n\\n';\nconst LINKEDIN_TEXT_MAX = 2950;\n\nconst headline = String(postData.editorialTitle || '').trim();\nlet body = String(postData.postText || '').trim();\nlet mainBlock = headline ? `${headline}${sep}${body}` : body;\n\nlet full = url ? `${mainBlock}${sep}${hashtags}${sep}${url}` : `${mainBlock}${sep}${hashtags}`;\nif (full.length > LINKEDIN_TEXT_MAX) {\n  const tail = url ? `${sep}${hashtags}${sep}${url}` : `${sep}${hashtags}`;\n  const headPrefix = headline ? `${headline}${sep}` : '';\n  const maxBody = LINKEDIN_TEXT_MAX - tail.length - headPrefix.length;\n  if (maxBody > 200) {\n    body = body.slice(0, maxBody - 1).replace(/\\s+\\S*$/, '').trim() + '…';\n    mainBlock = headline ? `${headline}${sep}${body}` : body;\n    full = url ? `${mainBlock}${sep}${hashtags}${sep}${url}` : `${mainBlock}${sep}${hashtags}`;\n  }\n}\n\nconst linkedInMediaTitle = (headline || String(postData.articleTitle || '')).replace(/\\s+/g, ' ').trim().slice(0, 200);\n\nfunction hashStr(s) {\n  let h = 5381;\n  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);\n  return Math.abs(h >>> 0);\n}\n\nconst seed = hashStr(String(postData.articleUrl || '') + '|' + String(postData.articleTitle || ''));\nconst visualStyles = [\n  'Photorealistic editorial photograph: natural daylight, deep depth of field so foreground and background stay sharp, fine texture detail, no haze.',\n  'Cinematic wide shot with gentle lighting but entire frame in focus (f/8–f/11 look), crisp edges on props, no tilt-shift or miniature blur.',\n  'Detail-rich scene echoing the topic: sharp focus throughout, clear materials (metal, glass, concrete), avoid glow smear or dreamy blur.',\n  'Authentic workspace still (no faces, logos, or screens with text): mixed light but high clarity, all main objects readable and sharp.',\n  'Infrastructure or architecture scene: geometric precision, neutral grade, sharp from near to far — no heavy bokeh or soft vignette haze.',\n  'Photoreal 3D product-style render: clean studio lighting, crisp shadows, anti-aliased edges, no depth-of-field blur on the hero subject.',\n  'Environmental shot with real sky or interior: atmospheric perspective only if subtle; main subject and midground must stay tack sharp.',\n  'Editorial still life: one clear focal arrangement, textured surfaces rendered with sharp micro-detail, no fuzzy glow around objects.',\n];\nconst stylePick = visualStyles[seed % visualStyles.length];\n\nconst sum = (postData.articleSummary || '').replace(/\\s+/g, ' ').trim().slice(0, 300);\nconst title = String(postData.articleTitle || '').trim().slice(0, 220);\nconst hook = [headline, body].filter(Boolean).join(' — ').replace(/\\s+/g, ' ').trim().slice(0, 220);\n\nconst imagePrompt = `Professional editorial illustration — subject matter only. Visualize the technical and business themes of the piece below; do not depict any social network, publishing tool, or \"post\" layout. Source article themes (English): ${title}. Context: ${sum}. Editorial angle to inspire visuals only — never render as words, captions, or labels: ${hook}. Visual treatment: ${stylePick} Image quality: tack sharp, deep focus, no shallow depth-of-field gimmicks, no tilt-shift, no heavy bokeh haze. Forbidden: all text, letters, numbers, glyphs, fake typography, subtitles, watermarks, brand marks, app UI, phone or laptop screens showing feeds, notification bubbles, profile avatars in a social layout, or \"card\" frames like a social timeline. Forbidden: LinkedIn logo or \"in\" icon, Facebook, Instagram, X/Twitter, or any recognizable social-platform branding or metaphor for \"networking\" or \"likes\". Use only concrete or abstract imagery tied to the editorial topic (infrastructure, security, operations, engineering, architecture, data centers, tools as objects without readable labels). Avoid generic blue tech gradients and decorative cloud clipart unless the topic is genuinely about cloud platforms.`;\n\nreturn [{\n  json: {\n    editorialTitle: headline,\n    postText: body,\n    hashtags,\n    fullPostText: full,\n    linkedInMediaTitle,\n    imagePrompt,\n    articleTitle: postData.articleTitle,\n    articleUrl: postData.articleUrl,\n    articleSummary: postData.articleSummary\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "name": "DALL-E — Gerar Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: $env.DALLE_MODEL || 'dall-e-3',\n  prompt: $json.imagePrompt,\n  n: 1,\n  size: $env.DALLE_SIZE || '1024x1024',\n  quality: $env.DALLE_QUALITY || 'hd',\n  style: $env.DALLE_STYLE || 'natural',\n  response_format: 'url'\n}) }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "name": "Extrair URL da Imagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        160
+      ],
+      "parameters": {
+        "jsCode": "const dalleResponse = $input.first().json;\nconst postData = $('Consolidar Post e Hashtags').first().json;\n\nconst imageUrl = dalleResponse?.data?.[0]?.url;\n\nif (!imageUrl) {\n  throw new Error('DALL-E não retornou URL de imagem.');\n}\n\nreturn [{\n  json: {\n    ...postData,\n    imageUrl: imageUrl\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0012-4000-8000-000000000012",
+      "name": "Download Imagem DALL-E",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        160
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0013-4000-8000-000000000013",
+      "name": "LinkedIn — Registrar Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/assets?action=registerUpload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.LINKEDIN_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "X-Restli-Protocol-Version",
+              "value": "2.0.0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  registerUploadRequest: {\n    recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],\n    owner: $env.LINKEDIN_MEMBER_URN,\n    serviceRelationships: [{\n      relationshipType: 'OWNER',\n      identifier: 'urn:li:userGeneratedContent'\n    }]\n  }\n}) }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0014-4000-8000-000000000014",
+      "name": "Preparar Upload LinkedIn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        160
+      ],
+      "parameters": {
+        "jsCode": "const linkedinRegisterResp = $input.first().json;\nconst postData = $('Extrair URL da Imagem').first().json;\nconst downloadItem = $('Download Imagem DALL-E').first();\n\nconst uploadUrl = linkedinRegisterResp?.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;\nconst assetUrn = linkedinRegisterResp?.value?.asset;\n\nif (!uploadUrl || !assetUrn) {\n  throw new Error(`LinkedIn Register Upload falhou. Resposta: ${JSON.stringify(linkedinRegisterResp)}`);\n}\n\nif (!downloadItem.binary?.data) {\n  throw new Error('Binário da imagem ausente: confirme Download Imagem DALL-E com responseFormat file (binary data).');\n}\n\nreturn [{\n  json: {\n    ...postData,\n    uploadUrl,\n    assetUrn\n  },\n  binary: downloadItem.binary\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0015-4000-8000-000000000015",
+      "name": "LinkedIn — Upload Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3320,
+        160
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $json.uploadUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.LINKEDIN_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0016-4000-8000-000000000016",
+      "name": "LinkedIn — Criar Post no Perfil",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3540,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.LINKEDIN_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "X-Restli-Protocol-Version",
+              "value": "2.0.0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  author: $env.LINKEDIN_MEMBER_URN,\n  lifecycleState: 'PUBLISHED',\n  specificContent: {\n    'com.linkedin.ugc.ShareContent': {\n      shareCommentary: {\n        text: $('Preparar Upload LinkedIn').first().json.fullPostText\n      },\n      shareMediaCategory: 'IMAGE',\n      media: [{\n        status: 'READY',\n        media: $('Preparar Upload LinkedIn').first().json.assetUrn,\n        title: {\n          text: String($('Preparar Upload LinkedIn').first().json.linkedInMediaTitle || $('Preparar Upload LinkedIn').first().json.articleTitle || '').slice(0, 200)\n        }\n      }]\n    }\n  },\n  visibility: {\n    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'\n  }\n}) }}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0018-4000-8000-000000000018",
+      "name": "Registar URL publicada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        160
+      ],
+      "parameters": {
+        "jsCode": "function wfGlobal() {\n  if (typeof $getWorkflowStaticData === 'function') return $getWorkflowStaticData('global');\n  if (typeof getWorkflowStaticData === 'function') return getWorkflowStaticData('global');\n  throw new Error('Static data indisponível');\n}\nconst staticData = wfGlobal();\nstaticData.postedIds = staticData.postedIds || [];\nstaticData.postedPathHashes = staticData.postedPathHashes || [];\nstaticData.postedContentHashes = staticData.postedContentHashes || [];\nconst row = $('Filtrar e Selecionar Artigo').first().json;\nconst ids = [row.itemId, row.itemIdNorm].filter(Boolean);\nfor (const id of ids) {\n  if (id && !staticData.postedIds.includes(id)) staticData.postedIds.unshift(id);\n}\nstaticData.postedIds = staticData.postedIds.slice(0, 2000);\nconst pathK = row.pathDedupeKey;\nconst contK = row.contentDedupeKey;\nif (pathK && !staticData.postedPathHashes.includes(pathK)) staticData.postedPathHashes.unshift(pathK);\nif (contK && !staticData.postedContentHashes.includes(contK)) staticData.postedContentHashes.unshift(contK);\nstaticData.postedPathHashes = staticData.postedPathHashes.slice(0, 2000);\nstaticData.postedContentHashes = staticData.postedContentHashes.slice(0, 2000);\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0017-4000-8000-000000000017",
+      "name": "Sem Notícias Relevantes",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        440
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Preparar Lista de Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lista de Feeds": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "Filtrar e Selecionar Artigo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar e Selecionar Artigo": {
+      "main": [
+        [
+          {
+            "node": "Tem Artigo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Artigo?": {
+      "main": [
+        [
+          {
+            "node": "Gemini — Gerar Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Notícias Relevantes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini — Gerar Post": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto do Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Texto do Post": {
+      "main": [
+        [
+          {
+            "node": "Gemini — Gerar Hashtags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini — Gerar Hashtags": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Post e Hashtags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Post e Hashtags": {
+      "main": [
+        [
+          {
+            "node": "DALL-E — Gerar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DALL-E — Gerar Imagem": {
+      "main": [
+        [
+          {
+            "node": "Extrair URL da Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair URL da Imagem": {
+      "main": [
+        [
+          {
+            "node": "Download Imagem DALL-E",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Imagem DALL-E": {
+      "main": [
+        [
+          {
+            "node": "LinkedIn — Registrar Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn — Registrar Upload": {
+      "main": [
+        [
+          {
+            "node": "Preparar Upload LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Upload LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "LinkedIn — Upload Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn — Upload Imagem": {
+      "main": [
+        [
+          {
+            "node": "LinkedIn — Criar Post no Perfil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn — Criar Post no Perfil": {
+      "main": [
+        [
+          {
+            "node": "Registar URL publicada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "1.0.0",
+  "id": "pagemanager-linkedin-workflow-v1"
+}

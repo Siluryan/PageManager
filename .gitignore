@@ -1,0 +1,87 @@
+# ---- General OS / Editor ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+*.bak
+.idea/
+.vscode/
+.history/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.cover
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+build/
+site/
+.python-version
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# ---- Terraform ----
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# NOTE: keep .terraform.lock.hcl tracked (do NOT ignore)
+!*.tfvars.example
+*.tfvars
+
+# ---- Docker / Compose ----
+*.pid
+*.seed
+*.pid.lock
+
+# ---- n8n ----
+# Local n8n data directories (if present)
+n8n/.n8n/
+n8n/data/
+
+# ---- Logs & runtime files ----
+logs/
+*.log
+log.txt
+*.out
+*.err
+*.tmp
+*.temp
+tmp/
+
+# ---- Node (just in case) ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Env / secrets ----
+.env
+.env.*
+!.env.example
+.secrets/
+secrets/
+

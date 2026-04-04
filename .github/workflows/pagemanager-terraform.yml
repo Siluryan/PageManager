@@ -1,0 +1,102 @@
+name: PageManager — Terraform
+
+on:
+  pull_request:
+    paths:
+      - "pagemanager/terraform/**"
+      - ".github/workflows/pagemanager-terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan ou apply"
+        type: choice
+        options:
+          - plan
+          - apply
+        default: plan
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: pagemanager-terraform-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pagemanager/terraform
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - run: terraform init -input=false
+
+      - run: terraform validate -no-color
+
+      - name: plan
+        id: plan
+        env:
+          TF_VAR_project_id: ${{ secrets.TF_VAR_project_id }}
+          TF_VAR_n8n_encryption_key: ${{ secrets.TF_VAR_n8n_encryption_key }}
+          TF_VAR_n8n_basic_auth_password: ${{ secrets.TF_VAR_n8n_basic_auth_password }}
+          TF_VAR_neon_db_host: ${{ secrets.TF_VAR_neon_db_host }}
+          TF_VAR_neon_db_user: ${{ secrets.TF_VAR_neon_db_user }}
+          TF_VAR_neon_db_password: ${{ secrets.TF_VAR_neon_db_password }}
+          TF_VAR_gemini_api_key: ${{ secrets.TF_VAR_gemini_api_key }}
+          TF_VAR_openai_api_key: ${{ secrets.TF_VAR_openai_api_key }}
+          TF_VAR_linkedin_access_token: ${{ secrets.TF_VAR_linkedin_access_token }}
+          TF_VAR_linkedin_member_urn: ${{ secrets.TF_VAR_linkedin_member_urn }}
+          TF_VAR_region: ${{ secrets.TF_VAR_region }}
+          TF_VAR_service_name: ${{ secrets.TF_VAR_service_name }}
+          TF_VAR_timezone: ${{ secrets.TF_VAR_timezone }}
+          TF_VAR_webhook_path: ${{ secrets.TF_VAR_webhook_path }}
+          TF_VAR_n8n_basic_auth_user: ${{ secrets.TF_VAR_n8n_basic_auth_user }}
+          TF_VAR_neon_db_name: ${{ secrets.TF_VAR_neon_db_name }}
+        run: |
+          terraform plan -no-color -input=false -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+
+      - name: PR comment
+        uses: ./.github/actions/terraform-plan-comment
+        with:
+          file: pagemanager/terraform/plan.txt
+          header: Terraform plan (PageManager)
+
+      - name: apply
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+        env:
+          TF_VAR_project_id: ${{ secrets.TF_VAR_project_id }}
+          TF_VAR_n8n_encryption_key: ${{ secrets.TF_VAR_n8n_encryption_key }}
+          TF_VAR_n8n_basic_auth_password: ${{ secrets.TF_VAR_n8n_basic_auth_password }}
+          TF_VAR_neon_db_host: ${{ secrets.TF_VAR_neon_db_host }}
+          TF_VAR_neon_db_user: ${{ secrets.TF_VAR_neon_db_user }}
+          TF_VAR_neon_db_password: ${{ secrets.TF_VAR_neon_db_password }}
+          TF_VAR_gemini_api_key: ${{ secrets.TF_VAR_gemini_api_key }}
+          TF_VAR_openai_api_key: ${{ secrets.TF_VAR_openai_api_key }}
+          TF_VAR_linkedin_access_token: ${{ secrets.TF_VAR_linkedin_access_token }}
+          TF_VAR_linkedin_member_urn: ${{ secrets.TF_VAR_linkedin_member_urn }}
+          TF_VAR_region: ${{ secrets.TF_VAR_region }}
+          TF_VAR_service_name: ${{ secrets.TF_VAR_service_name }}
+          TF_VAR_timezone: ${{ secrets.TF_VAR_timezone }}
+          TF_VAR_webhook_path: ${{ secrets.TF_VAR_webhook_path }}
+          TF_VAR_n8n_basic_auth_user: ${{ secrets.TF_VAR_n8n_basic_auth_user }}
+          TF_VAR_neon_db_name: ${{ secrets.TF_VAR_neon_db_name }}
+        run: terraform apply -auto-approve -input=false tfplan
