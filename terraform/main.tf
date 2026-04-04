@@ -56,7 +56,9 @@ resource "google_cloud_run_v2_service_iam_member" "scheduler_invoker" {
 
 resource "google_secret_manager_secret" "n8n_encryption_key" {
   secret_id = "${var.service_name}-encryption-key"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "n8n_encryption_key" {
   secret      = google_secret_manager_secret.n8n_encryption_key.id
@@ -65,7 +67,9 @@ resource "google_secret_manager_secret_version" "n8n_encryption_key" {
 
 resource "google_secret_manager_secret" "n8n_basic_auth_password" {
   secret_id = "${var.service_name}-ui-password"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "n8n_basic_auth_password" {
   secret      = google_secret_manager_secret.n8n_basic_auth_password.id
@@ -74,7 +78,9 @@ resource "google_secret_manager_secret_version" "n8n_basic_auth_password" {
 
 resource "google_secret_manager_secret" "neon_db_password" {
   secret_id = "${var.service_name}-neon-db-password"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "neon_db_password" {
   secret      = google_secret_manager_secret.neon_db_password.id
@@ -83,7 +89,9 @@ resource "google_secret_manager_secret_version" "neon_db_password" {
 
 resource "google_secret_manager_secret" "neon_db_host" {
   secret_id = "${var.service_name}-neon-db-host"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "neon_db_host" {
   secret      = google_secret_manager_secret.neon_db_host.id
@@ -92,7 +100,9 @@ resource "google_secret_manager_secret_version" "neon_db_host" {
 
 resource "google_secret_manager_secret" "neon_db_user" {
   secret_id = "${var.service_name}-neon-db-user"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "neon_db_user" {
   secret      = google_secret_manager_secret.neon_db_user.id
@@ -101,7 +111,9 @@ resource "google_secret_manager_secret_version" "neon_db_user" {
 
 resource "google_secret_manager_secret" "neon_db_name" {
   secret_id = "${var.service_name}-neon-db-name"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "neon_db_name" {
   secret      = google_secret_manager_secret.neon_db_name.id
@@ -110,7 +122,9 @@ resource "google_secret_manager_secret_version" "neon_db_name" {
 
 resource "google_secret_manager_secret" "gemini_api_key" {
   secret_id = "${var.service_name}-gemini-key"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "gemini_api_key" {
   secret      = google_secret_manager_secret.gemini_api_key.id
@@ -119,7 +133,9 @@ resource "google_secret_manager_secret_version" "gemini_api_key" {
 
 resource "google_secret_manager_secret" "openai_api_key" {
   secret_id = "${var.service_name}-openai-key"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "openai_api_key" {
   secret      = google_secret_manager_secret.openai_api_key.id
@@ -128,7 +144,9 @@ resource "google_secret_manager_secret_version" "openai_api_key" {
 
 resource "google_secret_manager_secret" "linkedin_access_token" {
   secret_id = "${var.service_name}-linkedin-token"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 resource "google_secret_manager_secret_version" "linkedin_access_token" {
   secret      = google_secret_manager_secret.linkedin_access_token.id
@@ -162,24 +180,72 @@ resource "google_cloud_run_v2_service" "n8n" {
         container_port = 5678
       }
 
-      env { name = "N8N_HOST";              value = "0.0.0.0" }
-      env { name = "N8N_PORT";              value = "5678" }
-      env { name = "N8N_PROTOCOL";          value = "https" }
-      env { name = "GENERIC_TIMEZONE";      value = var.timezone }
-      env { name = "N8N_BASIC_AUTH_ACTIVE"; value = "true" }
-      env { name = "N8N_BASIC_AUTH_USER";   value = var.n8n_basic_auth_user }
-      env { name = "N8N_BLOCK_ENV_ACCESS_IN_NODE"; value = "false" }
+      env {
+        name  = "N8N_HOST"
+        value = "0.0.0.0"
+      }
+      env {
+        name  = "N8N_PORT"
+        value = "5678"
+      }
+      env {
+        name  = "N8N_PROTOCOL"
+        value = "https"
+      }
+      env {
+        name  = "GENERIC_TIMEZONE"
+        value = var.timezone
+      }
+      env {
+        name  = "N8N_BASIC_AUTH_ACTIVE"
+        value = "true"
+      }
+      env {
+        name  = "N8N_BASIC_AUTH_USER"
+        value = var.n8n_basic_auth_user
+      }
+      env {
+        name  = "N8N_BLOCK_ENV_ACCESS_IN_NODE"
+        value = "false"
+      }
 
-      env { name = "DB_TYPE";                   value = "postgresdb" }
-      env { name = "DB_POSTGRESDB_PORT";       value = "5432" }
-      env { name = "DB_POSTGRESDB_SSL_ENABLED"; value = "true" }
-      env { name = "DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED"; value = "true" }
+      env {
+        name  = "DB_TYPE"
+        value = "postgresdb"
+      }
+      env {
+        name  = "DB_POSTGRESDB_PORT"
+        value = "5432"
+      }
+      env {
+        name  = "DB_POSTGRESDB_SSL_ENABLED"
+        value = "true"
+      }
+      env {
+        name  = "DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED"
+        value = "true"
+      }
 
-      env { name = "DALLE_MODEL";              value = "dall-e-3" }
-      env { name = "DALLE_SIZE";               value = "1024x1024" }
-      env { name = "DALLE_QUALITY";           value = "hd" }
-      env { name = "DALLE_STYLE";              value = "natural" }
-      env { name = "LINKEDIN_MEMBER_URN"; value = var.linkedin_member_urn }
+      env {
+        name  = "DALLE_MODEL"
+        value = "dall-e-3"
+      }
+      env {
+        name  = "DALLE_SIZE"
+        value = "1024x1024"
+      }
+      env {
+        name  = "DALLE_QUALITY"
+        value = "hd"
+      }
+      env {
+        name  = "DALLE_STYLE"
+        value = "natural"
+      }
+      env {
+        name  = "LINKEDIN_MEMBER_URN"
+        value = var.linkedin_member_urn
+      }
 
       # Segredos via Secret Manager
       env {
