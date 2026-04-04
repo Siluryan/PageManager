@@ -3,7 +3,7 @@ name: PageManager — Terraform
 on:
   pull_request:
     paths:
-      - "pagemanager/terraform/**"
+      - "terraform/**"
       - ".github/workflows/pagemanager-terraform.yml"
   workflow_dispatch:
     inputs:
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: pagemanager/terraform
+        working-directory: terraform
         shell: bash
 
     steps:
@@ -77,7 +77,7 @@ jobs:
       - name: PR comment
         uses: ./.github/actions/terraform-plan-comment
         with:
-          file: pagemanager/terraform/plan.txt
+          file: terraform/plan.txt
           header: Terraform plan (PageManager)
 
       - name: apply

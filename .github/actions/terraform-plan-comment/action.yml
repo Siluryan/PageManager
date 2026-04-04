@@ -5,7 +5,7 @@ inputs:
   file:
     description: "Caminho do arquivo de plano a ser comentado"
     required: false
-    default: "pagemanager/terraform/plan.txt"
+    default: "terraform/plan.txt"
   header:
     description: "Título exibido no comentário"
     required: false
@@ -20,7 +20,7 @@ runs:
       with:
         script: |
           const fs = require('fs');
-          const filePath = core.getInput('file') || 'pagemanager/terraform/plan.txt';
+          const filePath = core.getInput('file') || 'terraform/plan.txt';
           const header = core.getInput('header') || 'Terraform plan (PageManager)';
           let body = `#### ${header}\n\n`;
           try {
