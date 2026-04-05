@@ -1,2 +1,2 @@
-bucket = "BUCKET_DE_STATE"
+bucket = "siluryan-page-manager"
 prefix = "pagemanager/terraform"

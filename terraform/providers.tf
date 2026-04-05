@@ -1,7 +1,10 @@
 terraform {
   required_version = ">= 1.6"
 
-  backend "gcs" {}
+  backend "gcs" {
+    bucket = "siluryan-page-manager"
+    prefix = "pagemanager/terraform"
+  }
 
   required_providers {
     google = {
