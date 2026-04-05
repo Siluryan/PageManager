@@ -22,6 +22,12 @@ variable "webhook_path" {
   default = "pagemanager-post"
 }
 
+variable "n8n_public_url" {
+  type        = string
+  default     = ""
+  description = "URL https pública do Cloud Run (sem barra final). Obrigatória para N8N_EDITOR_BASE_URL/WEBHOOK_URL no contentor (evita ciclo com google_cloud_run_v2_service). No CI: TF_VAR_n8n_public_url."
+}
+
 variable "n8n_encryption_key" {
   type      = string
   sensitive = true

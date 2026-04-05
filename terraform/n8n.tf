@@ -48,6 +48,24 @@ resource "google_cloud_run_v2_service" "n8n" {
         value = "https"
       }
       env {
+        name  = "N8N_ENDPOINT_HEALTH"
+        value = "health"
+      }
+      dynamic "env" {
+        for_each = local.n8n_public_base != "" ? [1] : []
+        content {
+          name  = "N8N_EDITOR_BASE_URL"
+          value = "${local.n8n_public_base}/"
+        }
+      }
+      dynamic "env" {
+        for_each = local.n8n_public_base != "" ? [1] : []
+        content {
+          name  = "WEBHOOK_URL"
+          value = "${local.n8n_public_base}/"
+        }
+      }
+      env {
         name  = "GENERIC_TIMEZONE"
         value = var.timezone
       }

@@ -13,7 +13,7 @@ resource "google_cloud_scheduler_job" "n8n_saturday_trigger" {
 
   http_target {
     http_method = "POST"
-    uri         = "${google_cloud_run_v2_service.n8n.uri}/webhook/${var.webhook_path}"
+    uri         = "${local.n8n_uri}/webhook/${var.webhook_path}"
 
     body = base64encode(jsonencode({
       source  = "cloud-scheduler"
@@ -26,7 +26,7 @@ resource "google_cloud_scheduler_job" "n8n_saturday_trigger" {
 
     oidc_token {
       service_account_email = google_service_account.scheduler.email
-      audience              = google_cloud_run_v2_service.n8n.uri
+      audience              = local.n8n_uri
     }
   }
 

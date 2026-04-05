@@ -1,9 +1,9 @@
 output "n8n_url" {
-  value = google_cloud_run_v2_service.n8n.uri
+  value = local.n8n_uri
 }
 
 output "n8n_webhook_url" {
-  value = "${google_cloud_run_v2_service.n8n.uri}/webhook/${var.webhook_path}"
+  value = "${local.n8n_uri}/webhook/${var.webhook_path}"
 }
 
 output "cloud_scheduler_job" {
