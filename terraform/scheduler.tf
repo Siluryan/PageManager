@@ -1,7 +1,7 @@
 resource "google_cloud_scheduler_job" "n8n_saturday_trigger" {
   name             = "${var.service_name}-saturday-trigger"
-  description      = "PageManager — sábado 12:00 BRT"
-  schedule         = "0 12 * * 6"
+  description      = "PageManager — seg a sex 12:00 (America/Sao_Paulo, UTC−3)"
+  schedule         = "0 12 * * MON-FRI"
   time_zone        = "America/Sao_Paulo"
   attempt_deadline = "180s"
 
